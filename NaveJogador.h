@@ -1,4 +1,8 @@
 // Exemplo na classe triangulo. Construir com base nela
+
+/*--------O jogador podera usar duas naves, uma padrao e outra que é um upgrade que dura 30 segundos------------------
+----------A nave pixel Vanguard é a nave padrao, sendo a nave upgrade a pixel-destroyer-------------------------------
+*/
 #pragma once
 #include "bibSistema.h"
 

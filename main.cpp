@@ -49,6 +49,7 @@ GLvoid timerJogo(GLint value){
 }
 
 // Função de desenho (callback)
+// 
 GLvoid draw(GLvoid) {
     std::cout << "Renderizando cena...\n";
     
@@ -63,6 +64,33 @@ GLvoid draw(GLvoid) {
     gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+
+    // Naves e balas
+
+    // Desenhar a nave do jogador
+    // TODO: No cabeçalho da nave amiga, adicionar esta funcao
+    naveJogador->drawPlayerShip();
+
+    // bala do jogador
+    // No cabeçalho da bala do jogador, adicionar esta funcao
+    for (int i = 0; i < NUM_BALAS_JOGADOR; i++) {
+        balasJogador[i]->drawBullet();
+    }
+    // renderizar todos os inimigos
+    // TODO: no cabeçalho da nave inimiga, adicionar esta funcao
+    for (int i = 0; i < NUM_INIMIGOS; i++) {
+        inimigos[i]->drawEnemyShip();
+    }
+
+    // desenhar as balas dos inimigos
+    //TODO: no cabeçalho...
+
+    for (int i = 0; i < NUM_BALAS_INIMIGOS; i++) {
+        balasInimigos[i]->drawBullet();
+    }
+    
+
+
 
 
     // Trocar os buffers para exibir o desenho
