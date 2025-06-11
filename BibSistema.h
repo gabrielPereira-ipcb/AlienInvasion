@@ -21,6 +21,8 @@
 
 //variáveis globais ou outras definições partilhadas 
 
-
+extern GLfloat tamanhoMundo;
+extern GLfloat coordenadasMundo[4];
+extern GLfloat naveJogadorTamanho;
 
 
