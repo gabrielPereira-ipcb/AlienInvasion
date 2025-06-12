@@ -2,7 +2,7 @@
 #pragma once
 #include "BibSistema.h"
 
-extern GLfloat NaveJogadorTamanho;
+
 
 class NaveJogador{
     //variaveis privadas
@@ -12,7 +12,10 @@ class NaveJogador{
         GLfloat anguloRotacao; //Angulo de rotacao da nave. pode ser +ou- 90 graus, a depender da orientacao
 
 
-        GLvoid desenhaNaveJogador(GLvoid); // Método privado para desenhar a nave do jogador que é composto por apenas um triangulo verde
+        GLvoid desenhaBaseNaveJogador(GLvoid); // Método privado para desenhar a nave do jogador que é composto por apenas um triangulo verde
+        GLvoid desenhaCanhaoNaveJogador(GLvoid); // Método privado para desenhar o cockpit da nave do jogador que é um triangulo azul
+        GLvoid desenhaFoguetesNaveJogador(GLvoid);
+        GLvoid desenhaCockpitNaveJogador(GLvoid);
 
     //variaveis publicas
     public:

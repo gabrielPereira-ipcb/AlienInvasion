@@ -52,10 +52,11 @@ GLvoid tecladoGameOver(unsigned char tecla,int x,int y);
 
 GLfloat tamanhoMundo = 20.0f;
 GLfloat coordenadasMundo[4] =  {-tamanhoMundo, tamanhoMundo, -tamanhoMundo, tamanhoMundo}; //As coordenadas do mundo são: xmin, xmax, ymin, ymax. Ou seja, duma ponta a outra do mundo, no eixo x e no eixo y, tem 2 vezes o tamanhoMundo
-GLfloat naveJogadorTamanho = 2.0f;
+GLfloat naveJogadorTamanho[2] = {6.0f,5.0f};
+GLfloat escala = 0.5f;
 
 
-int larguraEcra = 720, alturaEcra = 720;
+GLint larguraEcra = 720, alturaEcra = 720;
 
 enum EstadoJogo {
     INICIAL,
@@ -101,7 +102,7 @@ GLvoid desenhaUIEcraInicial(){
     buffer.str(""); // string vazia
     buffer.clear(); // limpa o estado de erro
     buffer << "Press H for help"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-5.0f, 0.0f);
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-1.0f, 0.0f);
 
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter); //Desenha cada carcter 
@@ -111,7 +112,7 @@ GLvoid desenhaUIEcraInicial(){
     buffer.str(""); // string vazia
     buffer.clear(); // limpa o estado de erro
     buffer << "Press ESC to exit"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-10.0f, 0.0f); 
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-2.0f, 0.0f); 
 
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter); //Desenha cada carcter 
@@ -191,7 +192,7 @@ GLvoid desenhaUIEcraSuporte(GLvoid){
     buffer.str("");
     buffer.clear();
     buffer<<"W, S, A, D - Move the ship in cardinal directions"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-15.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f), 0.0f);
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-5.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f), 0.0f);
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
@@ -199,7 +200,7 @@ GLvoid desenhaUIEcraSuporte(GLvoid){
     buffer.str("");
     buffer.clear();
     buffer<<"Q, E - Rotate the ship in 90 degree angles"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-15.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-1.0f, 0.0f);
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-5.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-1.0f, 0.0f);
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
@@ -207,7 +208,7 @@ GLvoid desenhaUIEcraSuporte(GLvoid){
     buffer.str("");
     buffer.clear();
     buffer<<"Space - Shoot"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-15.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-2.0f, 0.0f);
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-5.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-2.0f, 0.0f);
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
@@ -216,7 +217,7 @@ GLvoid desenhaUIEcraSuporte(GLvoid){
     buffer.str("");
     buffer.clear();
     buffer<<"Press B to go back"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-5.0f, 0.0f);
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-3.0f, 0.0f);
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
@@ -301,7 +302,7 @@ GLvoid desenhaUIEcraPausa(GLvoid){
     buffer.str("");
     buffer.clear();
     buffer << "Press M to return to menu"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-5.0f, 0.0f);
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-1.0f, 0.0f);
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
@@ -310,7 +311,7 @@ GLvoid desenhaUIEcraPausa(GLvoid){
     buffer.str("");
     buffer.clear();
     buffer << "Press H for help"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-10.0f, 0.0f);
+    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-2.0f, 0.0f);
     while (buffer.get(caracter)){
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
@@ -532,7 +533,7 @@ int main (int argc, char*argv[]){
 
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 
-    glutInitWindowPosition(0, 0); //definir a posição inicial da janela de renderização no ecrã. (x,y) é o ponto de origem da janela. (0,0) é o canto superior esquerdo do ecrã, ou seja, a janela será aberta no canto superior esquerdo do ecrã.
+    glutInitWindowPosition(larguraEcra/2, 0); //definir a posição inicial da janela de renderização no ecrã. (x,y) é o ponto de origem da janela. (0,0) é o canto superior esquerdo do ecrã, ou seja, a janela será aberta no canto superior esquerdo do ecrã.
     glutInitWindowSize(larguraEcra, alturaEcra);  //define o tamanho da janela 
     
     glutCreateWindow("Alien Invasion"); 

@@ -20,14 +20,76 @@ NaveJogador::NaveJogador(GLfloat x, GLfloat y, GLint angulo){
     velocidade = 1.0f;
 }
 
-/*----metodo para desenhar a nave do jogador----*/
-GLvoid NaveJogador::desenhaNaveJogador(GLvoid){
+/*----metodo para desenhar a base da nave do jogador----*/
+GLvoid NaveJogador::desenhaBaseNaveJogador(GLvoid){
     glColor3f(0.0f, 1.0f, 0.0f); //cor verde para a cor da nave amiga
-    glBegin(GL_TRIANGLES);{
-        // Vértices centralizados na origem, com a ponta para cima
-        glVertex2f(-naveJogadorTamanho/2, -naveJogadorTamanho/2); // Base esquerda
-        glVertex2f(naveJogadorTamanho/2, -naveJogadorTamanho/2);  // Base direita
-        glVertex2f(0.0f, naveJogadorTamanho/2);                   // Ponta para cima
+    
+    // Desenha o hexágono centralizado na origem
+    glBegin(GL_POLYGON);
+    {
+        // Base inferior
+        glVertex2f(-naveJogadorTamanho[0]/2, -naveJogadorTamanho[1]/2); // Esquerda inferior
+        glVertex2f(naveJogadorTamanho[0]/2, -naveJogadorTamanho[1]/2);  // Direita inferior
+        
+        // Lado direito
+        glVertex2f(naveJogadorTamanho[0]/2, 0.0f);  // Direita meio
+        
+        // Topo
+        glVertex2f(naveJogadorTamanho[0]/4, naveJogadorTamanho[1]/4);   // Topo direito
+        glVertex2f(-naveJogadorTamanho[0]/4, naveJogadorTamanho[1]/4);  // Topo esquerdo
+        
+        // Lado esquerdo
+        glVertex2f(-naveJogadorTamanho[0]/2, 0.0f); // Esquerda meio inferior
+    }
+    glEnd();
+}
+
+GLvoid NaveJogador::desenhaCockpitNaveJogador(GLvoid){
+    glColor3f(0.2f, 0.5f, 1.0f); // Azul claro para a cabine
+    // Desenha o triângulo invertido (cabine) 
+    glBegin(GL_TRIANGLES);
+    {
+        glVertex2f(-naveJogadorTamanho[0]/4, naveJogadorTamanho[1]/4);  
+        glVertex2f(naveJogadorTamanho[0]/4, naveJogadorTamanho[1]/4);   
+        glVertex2f(0.0f, -naveJogadorTamanho[1]/2);                     
+    }
+    glEnd();
+}
+
+
+/*----metodo para desenhar o cockpit (triangulo) da nave----*/
+GLvoid NaveJogador::desenhaCanhaoNaveJogador(GLvoid){
+    glColor3f(0.0f, 1.0f, 0.0f); 
+    // Desenha o triângulo (ponta da nave) 
+    glBegin(GL_TRIANGLES);
+    {
+        glVertex2f(-naveJogadorTamanho[0]/2, -naveJogadorTamanho[1]/2);  // ponto esquerda
+        glVertex2f(naveJogadorTamanho[0]/2, -naveJogadorTamanho[1]/2);   // ponto direita
+        glVertex2f(0.0f, (naveJogadorTamanho[1]/2)*1.5f);  // Ponta
+    }
+    glEnd();
+}
+
+/*----metodo para desenhar os foguetes da nave----*/
+GLvoid NaveJogador::desenhaFoguetesNaveJogador(GLvoid){
+    glColor3f(1.0f, 0.5f, 0.0f); // Cor laranja para os foguetes
+    
+    // Foguete esquerdo
+    glBegin(GL_TRIANGLES);
+    {
+        glVertex2f(-naveJogadorTamanho[0]/3, -naveJogadorTamanho[1]/2); // Base esquerda
+        glVertex2f(-naveJogadorTamanho[0]/6, -naveJogadorTamanho[1]/2); // Base direita
+        glVertex2f(-naveJogadorTamanho[0]/4, -naveJogadorTamanho[1]);   // Ponta
+    }
+    glEnd();
+    
+
+    // Foguete direito
+    glBegin(GL_TRIANGLES);
+    {
+        glVertex2f(naveJogadorTamanho[0]/6, -naveJogadorTamanho[1]/2);  // Base esquerda
+        glVertex2f(naveJogadorTamanho[0]/3, -naveJogadorTamanho[1]/2);  // Base direita
+        glVertex2f(naveJogadorTamanho[0]/4, -naveJogadorTamanho[1]);    // Ponta
     }
     glEnd();
 }
@@ -39,10 +101,15 @@ GLvoid NaveJogador::desenha(GLvoid){
     
     // Primeiro translada para a posição
     glTranslatef(posicao[0], posicao[1], 0.0f);
+    // Aplica a escala
+    glScalef(escala, escala, 1.0f);
     // Depois rotaciona em torno do ponto de origem da nave
     glRotatef(anguloRotacao, 0.0f, 0.0f, 1.0f);
     
-    desenhaNaveJogador();
+    desenhaCanhaoNaveJogador();
+    desenhaBaseNaveJogador();
+    desenhaFoguetesNaveJogador();
+    desenhaCockpitNaveJogador();
     glPopMatrix();
 }
 
@@ -50,29 +117,34 @@ GLvoid NaveJogador::desenha(GLvoid){
 GLboolean NaveJogador::moverNave(GLint direcao){
     GLboolean move = false;
 
+
+    // Calcula os limites considerando a escala uma única vez
+    GLfloat limiteDireita = coordenadasMundo[1] - (naveJogadorTamanho[0] * escala);
+    GLfloat limiteEsquerda = coordenadasMundo[0] + (naveJogadorTamanho[0] * escala);
+    GLfloat limiteCima = coordenadasMundo[3] - (naveJogadorTamanho[1] * escala);
+    GLfloat limiteBaixo = coordenadasMundo[2] + (naveJogadorTamanho[1] * escala);
+
     switch (direcao) {
-        /*Foi necessario adicionar uma logica que bloqueia a nave do jogador sair do ecra*/
         case 0: //direita
-            if (posicao[0] < coordenadasMundo[1] - naveJogadorTamanho) {
+            if (posicao[0] < limiteDireita) {
                 posicao[0] += velocidade;
                 move = true;
             }
             break;
         case 1: //esquerda
-            if (posicao[0] > coordenadasMundo[0] + naveJogadorTamanho) {
+            if (posicao[0] > limiteEsquerda) {
                 posicao[0] -= velocidade;
                 move = true;
             }
             break;
         case 2: //cima
-            
-            if (posicao[1] < coordenadasMundo[3] - naveJogadorTamanho*2) {
+            if (posicao[1] < limiteCima) {
                 posicao[1] += velocidade;
                 move = true;
             }
             break;
         case 3: //baixo
-            if (posicao[1] > coordenadasMundo[2]+ naveJogadorTamanho) {
+            if (posicao[1] > limiteBaixo) {
                 posicao[1] -= velocidade;
                 move = true;
             }
