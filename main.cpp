@@ -1,12 +1,13 @@
 //main.cpp
 #include "BibSistema.h"
 #include "NaveJogador.h"
+#include "NaveInimiga.h"
 
 using namespace std;// Usar o namespace std para evitar escrever std:: antes de cada função da biblioteca padrão
 
 /*----Funcoes auxiliares----*/
-GLvoid criarNaveJogador(); //funcao auxliar 
-GLvoid criarNavesInimigo(); //funcao auxiliar
+GLvoid criarNaveJogador(GLvoid); //funcao auxliar 
+GLvoid criarNavesInimigo(GLvoid); //funcao auxiliar
 
 
 /*----Funcoes referentes ao estado de jogo----*/
@@ -53,6 +54,14 @@ GLvoid tecladoGameOver(unsigned char tecla,int x,int y);
 GLfloat tamanhoMundo = 20.0f;
 GLfloat coordenadasMundo[4] =  {-tamanhoMundo, tamanhoMundo, -tamanhoMundo, tamanhoMundo}; //As coordenadas do mundo são: xmin, xmax, ymin, ymax. Ou seja, duma ponta a outra do mundo, no eixo x e no eixo y, tem 2 vezes o tamanhoMundo
 GLfloat naveJogadorTamanho[2] = {6.0f,5.0f};
+GLfloat velocidadeNaveAmiga = 1.0f;
+
+GLfloat naveInimigaTamanho[2] = {3.0f,2.0f}; 
+GLfloat velocidadeNaveInimiga = 1.0f;
+
+GLfloat razaoInimigoVertical = 0.2f; // grade de inimigos cobre 20% do mundo na vertical
+GLfloat razaoInimigosHorizontal = 0.7f; //grade inimigos cobre 80%....
+
 GLfloat escala = 0.5f;
 
 
@@ -71,6 +80,10 @@ enum EstadoJogo {
 EstadoJogo estadoAtual = INICIAL;
 
 NaveJogador* naveJogador; // ponteiro para a nave do jogador
+
+
+vector <NaveInimiga*> navesInimigas; 
+
 
 /*----Funcoes do ecra inicial----*/
 GLvoid desenhaUIEcraInicial(){
@@ -147,10 +160,11 @@ GLvoid tecladoEcraInicial(unsigned char tecla, int x,int y){
     case 13: // "ENTER"
         
         glutDisplayFunc(desenhaEcraJogo); // Muda a função de desenho para o jogo
-        glutKeyboardFunc(tecladoJogo); // Muda a função de teclado para o jogo
-        glutIdleFunc(idleJogo); // Muda a função idle para o jogo
+        glutKeyboardFunc(tecladoJogo); 
+        glutIdleFunc(idleJogo); 
 
         criarNaveJogador(); // Cria a nave do jogador
+        criarNavesInimigo();
 
         glutPostRedisplay(); // Redesenha a cena
         break;
@@ -392,11 +406,50 @@ GLvoid criarNaveJogador(){
 
 }
 
-/*----fim funcao cria nave jogador----*/
 
 /*----funcao cria inimigos----*/
+GLvoid criarNavesInimigo(){
+    
 
-/*----fim funcao cria inimigos----*/
+    // Grade de inimigos 
+    GLfloat linhas, colunas;
+
+    // Calcula o número de naves que cabem na tela
+    linhas = (coordenadasMundo[3]-coordenadasMundo[2])/(naveInimigaTamanho[1]);
+    colunas = (coordenadasMundo[1]-coordenadasMundo[0])/(naveInimigaTamanho[0]);
+    
+    // Aplica as razões para limitar o número de naves
+    linhas = (GLint)(linhas * razaoInimigoVertical); //20% por defeito
+    colunas = (GLint)(colunas * 0.8f); //80% por defeito
+
+    std::cout << "Linhas: " << linhas << ", Colunas: " << colunas << std::endl;
+
+       
+    // Calcula o espaço entre as naves inimigas
+    GLfloat espacoHorizontal = naveInimigaTamanho[0];
+    GLfloat espacoVertical = naveInimigaTamanho[1];
+
+    // Cria as naves inimigas em uma grade
+    for (int i = 0; i < linhas; i++) {
+        for (int j = 0; j < colunas; j++) {
+            // Calcula a posição inicial de cada nave inimiga
+            GLfloat posX = coordenadasMundo[0] + espacoHorizontal * (j + 1);
+            GLfloat posY = coordenadasMundo[3] - espacoVertical * (i + 1);
+
+            // Cria uma nova nave inimiga e define sua posição inicial
+            NaveInimiga* novaNave = new NaveInimiga(velocidadeNaveInimiga);
+            novaNave->setPosicaoNaveInimiga(posX, posY);
+            
+            // Adiciona a nave ao vetor de naves inimigas
+            navesInimigas.push_back(novaNave);
+        }
+    }
+
+
+
+}
+
+
 
 /*----funcoes do jogo----*/
 
@@ -404,7 +457,7 @@ GLvoid criarNaveJogador(){
 /*----fim funcoes do jogo----*/
 
 GLvoid desenhaEcraJogo(GLvoid) {
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f); //Define a cor de fundo como preta
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
     glMatrixMode(GL_PROJECTION);
@@ -412,27 +465,25 @@ GLvoid desenhaEcraJogo(GLvoid) {
      
     gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
 
-    glMatrixMode(GL_MODELVIEW); // Definir o modo da matriz como modelview
+    glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    /*----desenhar objetos na cena (nave Amiga etc)----*/
+    // Desenha a nave do jogador
     if (naveJogador) {
         std::cout << "Posição da nave: X=" << naveJogador->getPosicao()[0] << ", Y=" << naveJogador->getPosicao()[1]<< "\t Angulo de ataque na nave: "<< naveJogador->getAnguloRotacao() +90.0f << std::endl;
-        naveJogador->desenha(); // Desenha a nave do jogador
+        naveJogador->desenha();
     } else {
         std::cerr << "Erro: Nave do jogador não foi criada!" << std::endl;
     }
 
-    /*----desenhar a nave do jogador----*/
-
-
-    
-    //Renderizar todos os inimigos
-    
-
-    //Renderizar todas as balas do jogador
-
-    //Renderizar todas as balas do inimgio
+    // Desenha todas as naves inimigas
+    for(NaveInimiga* naveInimiga : navesInimigas) {
+        if (naveInimiga) {
+            naveInimiga->desenhaNaveInimiga();
+        } else {
+            std::cerr << "Erro: Nave inimiga não foi criada!" << std::endl;
+        }
+    }
 
     glutSwapBuffers();
 }
@@ -533,7 +584,7 @@ int main (int argc, char*argv[]){
 
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 
-    glutInitWindowPosition(larguraEcra/2, 0); //definir a posição inicial da janela de renderização no ecrã. (x,y) é o ponto de origem da janela. (0,0) é o canto superior esquerdo do ecrã, ou seja, a janela será aberta no canto superior esquerdo do ecrã.
+    glutInitWindowPosition(larguraEcra, 0); //definir a posição inicial da janela de renderização no ecrã. (x,y) é o ponto de origem da janela. (0,0) é o canto superior esquerdo do ecrã, ou seja, a janela será aberta no canto superior esquerdo do ecrã.
     glutInitWindowSize(larguraEcra, alturaEcra);  //define o tamanho da janela 
     
     glutCreateWindow("Alien Invasion"); 

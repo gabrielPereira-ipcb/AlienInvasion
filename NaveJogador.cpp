@@ -12,13 +12,7 @@ NaveJogador::NaveJogador(){
     velocidade = 1.0f;
 }
 
-/*----construtor com parametros----*/
-NaveJogador::NaveJogador(GLfloat x, GLfloat y, GLint angulo){
-    posicao[0] = x;
-    posicao[1] = y;
-    anguloRotacao = angulo;
-    velocidade = 1.0f;
-}
+
 
 /*----metodo para desenhar a base da nave do jogador----*/
 GLvoid NaveJogador::desenhaBaseNaveJogador(GLvoid){

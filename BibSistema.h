@@ -24,7 +24,7 @@
 extern GLfloat tamanhoMundo;
 extern GLfloat coordenadasMundo[4];
 extern GLfloat naveJogadorTamanho[2];
+extern GLfloat naveInimigaTamanho[2];
 extern GLfloat escala;
-extern GLint larguraEcra, alturaEcra;
 
 
