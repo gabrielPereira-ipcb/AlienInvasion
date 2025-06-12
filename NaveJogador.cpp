@@ -157,12 +157,31 @@ GLboolean NaveJogador::rodarNave(GLint direcao){
     /*Nao ha limite de rotacao. */
     switch (direcao){
         case 1: //"esquerda" somar 90graus
-            anguloRotacao += 90.0f;
-            rotaciona = true;
-            break;
+            if (anguloRotacao >=270.0f){
+                anguloRotacao = 0.0f;
+                rotaciona = true;
+                break;
+            }
+            else{
+                anguloRotacao += 90.0f;
+                rotaciona = true;
+                break;
+            }    
+            
+            
         case 0: //"direita" subtrarir 90graus
-            anguloRotacao -= 90.0f;
-            rotaciona = true;
+
+            if (anguloRotacao <= 0.0f){
+                anguloRotacao = 270.0f;
+                rotaciona = true;
+                break;
+            }
+            else {
+                anguloRotacao -= 90.0f;
+                rotaciona = true;
+                break;
+            }
+            
         default:
             std::cerr<<"Rotação inválida"<<std::endl;
             break;
@@ -175,7 +194,9 @@ GLfloat* NaveJogador::getPosicao(){
 }
 
 GLfloat NaveJogador::getAnguloRotacao(){
-    return anguloRotacao;
+
+    
+    return (anguloRotacao + 90.0f) == 360.0f ? 0.0f : (anguloRotacao + 90.0f); 
 }
 
 NaveJogador::~NaveJogador() { //destrutor da nave do Jogador
