@@ -3,17 +3,27 @@
 #include "NaveJogador.h"
 #include "NaveInimiga.h"
 #include "Projetil.h"
+#include "AudioManager.h"
 
 using namespace std;// Usar o namespace std para evitar escrever std:: antes de cada função da biblioteca padrão
+
+
 
 /*----Funcoes auxiliares----*/
 GLvoid criarNaveJogador(GLvoid); //funcao auxliar 
 GLvoid criarNavesInimigo(GLvoid); //funcao auxiliar
 
+/*----Funcoes para seleção de dificuldade----*/
+GLvoid desenhaUISelecaoDificuldade(GLvoid);
+GLvoid desenhaEcraSelecaoDificuldade(GLvoid);
+GLvoid idleEcraSelecaoDificuldade(GLvoid);
+GLvoid tecladoSelecaoDificuldade(unsigned char tecla, int x, int y);
+GLvoid iniciarJogoComDificuldade(GLint dificuldade); //funcao auxiliar para iniciar o jogo com a dificuldade selecionada
 
 /*----Funcoes referentes ao estado de jogo----*/
 GLvoid desenhaEcraJogo(GLvoid); //funcao auxiliar para desenhar o ecra do jogo
 GLvoid desenhaUIJogo(GLvoid); //funcao auxiliar para desenho da UI do jogo
+GLvoid desenhaStatusDisparo(GLvoid); //funcao auxiliar para desenhar o status do disparo
 GLvoid idleJogo(GLvoid); //funcao auxiliar para o idle do jogo. 
 GLvoid tecladoJogo(unsigned char tecla, int x, int y); //funcao auxiliar para o teclado do jogo
 
@@ -44,7 +54,11 @@ GLvoid desenhaEcraGameOver(GLvoid);
 GLvoid idleEcraGameOver(GLvoid);
 GLvoid tecladoGameOver(unsigned char tecla,int x,int y);
 
-
+/*----funcoes para o estado de GameWIn----*/
+GLvoid desenhaUIGameWIn(GLvoid);
+GLvoid desenhaEcraGameWIn(GLvoid);
+GLvoid idleEcraGameWIn(GLvoid);
+GLvoid tecladoGameWIn(unsigned char tecla, int x, int y);
 
 /*----temporizador----*/
 
@@ -69,17 +83,21 @@ GLfloat tamanhoProjetil = (naveJogadorTamanho[0]*escala)/2;// Aumentado para met
 
 GLint larguraEcra = 720, alturaEcra = 720;
 
+// Enumeração para os estados do jogo
 enum EstadoJogo {
     INICIAL,
     PAUSADO,
     JOGANDO,
     AJUDAPAUSA,
     AJUDAINICIAL,
+    SELECAO_DIFICULDADE,
     GAMEWIN,
     GAMEOVER
 };
 
 EstadoJogo estadoAtual = INICIAL;
+
+GLint dificuldadeSelecionada;
 
 NaveJogador* naveJogador; // ponteiro para a nave do jogador
 
@@ -89,53 +107,78 @@ vector <Projetil*> projeteisJogador;
 
 // Variáveis para controle do timer de disparo
 GLfloat ultimoDisparo = 0.0f;
-GLfloat intervaloDisparo = 1.5f; // Intervalo de 1.5 segundos entre disparos
+GLfloat intervaloDisparo = 1.5f;
 
+// Variáveis para controle do jogo
+GLint vidasJogador = 3;
+GLint inimigosEliminados = 0;
+GLfloat tempoJogo = 0.0f;
+GLfloat ultimoTempo = 0.0f;
+GLfloat ultimoTempoAtualizacao = 0.0f;
+GLint pontuacaoTotal = 0;
+
+// Variáveis para controle de tiro dos inimigos
+vector<Projetil*> projeteisInimigos;
+GLfloat ultimoTiroInimigo = 0.0f;
+GLfloat intervaloDisparoInimigo = 2.0f; // Intervalo base entre tiros dos inimigos
+
+// Variáveis para controle do movimento das naves inimigas
+GLfloat velocidadeHorizontalInimigos = 0.5f*escala;
+GLfloat distanciaVerticalInimigos = naveInimigaTamanho[1]*escala*3;
+GLboolean movendoDireita = true;
+GLint ciclosMovimento = 0;
+GLint ciclosParaDescer = 4; 
+
+GLboolean jogadorAtrasLinhaInimiga = false;
+
+// Variável global para o gerenciador de áudio
+AudioManager* audioManager = nullptr;
 
 /*----Funcoes do ecra inicial----*/
 GLvoid desenhaUIEcraInicial(){
     stringstream buffer;
     char caracter;
 
-    glColor3f(0.0f, 1.0f, 0.0f); // cor verde para o texto, mesma cor que a nave amiga
-
-    buffer.str(""); // string vazia
-    buffer.clear(); // limpa o estado de erro
-    buffer << "ALIEN INVASION"<<endl; // titulo do jogo
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)+10.0f, 0.0f); //posiciona o texto no centro do ecra
-
-    while (buffer.get(caracter)){
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, caracter); //Desenha cada carcter do titulo
+    // Título
+    glColor3f(0.0f, 1.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "ALIEN INVASION";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f + 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, caracter);
     }
 
-    glColor3f(1.0f,1.0f,1.0f);
-    buffer.str(""); // string vazia
-    buffer.clear(); // limpa o estado de erro
-    buffer << "Press ENTER to play"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f), 0.0f); 
-
-    while (buffer.get(caracter)){
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter); //Desenha cada carcter 
+    // Instruções
+    glColor3f(0.0f, 1.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Press ENTER to play";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 
-    glColor3f(1.0f,1.0f,1.0f);
-    buffer.str(""); // string vazia
-    buffer.clear(); // limpa o estado de erro
-    buffer << "Press H for help"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-1.0f, 0.0f);
-
-    while (buffer.get(caracter)){
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter); //Desenha cada carcter 
+    glColor3f(1.0f, 1.0f, 1.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Press H for help";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 
-    glColor3f(1.0f,1.0f,1.0f);
-    buffer.str(""); // string vazia
-    buffer.clear(); // limpa o estado de erro
-    buffer << "Press ESC to exit"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-2.0f, 0.0f); 
-
-    while (buffer.get(caracter)){
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter); //Desenha cada carcter 
+    glColor3f(1.0f, 0.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Press ESC to exit";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f - 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 }
 
@@ -166,14 +209,11 @@ GLvoid tecladoEcraInicial(unsigned char tecla, int x,int y){
 
     case 13: // "ENTER"
         
-        glutDisplayFunc(desenhaEcraJogo); // Muda a função de desenho para o jogo
-        glutKeyboardFunc(tecladoJogo); 
-        glutIdleFunc(idleJogo); 
-
-        criarNaveJogador(); // Cria a nave do jogador
-        criarNavesInimigo();
-
-        glutPostRedisplay(); // Redesenha a cena
+        glutDisplayFunc(desenhaEcraSelecaoDificuldade);
+        glutKeyboardFunc(tecladoSelecaoDificuldade);
+        glutIdleFunc(idleEcraSelecaoDificuldade);
+        estadoAtual = SELECAO_DIFICULDADE;
+        glutPostRedisplay();
         break;
 
     case 'h': // "Help :)"
@@ -194,52 +234,220 @@ GLvoid tecladoEcraInicial(unsigned char tecla, int x,int y){
     break;
     }
 }
+GLvoid desenhaUISelecaoDificuldade(GLvoid) {
+    stringstream buffer;
+    char caracter;
+
+    // Desenha o título "SELECT DIFFICULTY"
+    glColor3f(0.0f, 1.0f, 0.0f); // Verde
+    buffer.str("");
+    buffer.clear();
+    buffer << "SELECT DIFFICULTY";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f + 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, caracter);
+    }
+
+    // Desenha as opções de dificuldade
+    glColor3f(1.0f, 1.0f, 1.0f); // Branco
+    buffer.str("");
+    buffer.clear();
+    buffer << "1 - Deux Ex Machina";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    buffer.str("");
+    buffer.clear();
+    buffer << "2 - Medium";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    buffer.str("");
+    buffer.clear();
+    buffer << "3 - Hard";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f - 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    // Instruções para voltar
+    glColor3f(0.0f, 1.0f, 0.0f); // Verde
+    buffer.str("");
+    buffer.clear();
+    buffer << "Press ESC to go back";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 4.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+}
+
+GLvoid desenhaEcraSelecaoDificuldade(GLvoid) {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();  
+     
+    gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    desenhaUISelecaoDificuldade();
+
+    glutSwapBuffers();
+}
+
+GLvoid idleEcraSelecaoDificuldade(GLvoid) {
+    // Não faz nada, apenas mantém a tela de seleção de dificuldade estática
+    glutPostRedisplay();
+}
+
+GLvoid tecladoSelecaoDificuldade(unsigned char tecla, int x, int y) {
+    switch(tecla) {
+        case '1':
+            iniciarJogoComDificuldade(1);
+            break;
+        case '2':
+            iniciarJogoComDificuldade(2);
+            break;
+        case '3':
+            iniciarJogoComDificuldade(3);
+            break;
+        case 27: // ESC
+            glutDisplayFunc(desenhaEcraInicial);
+            glutKeyboardFunc(tecladoEcraInicial);
+            glutIdleFunc(idleEcraInicial);
+            estadoAtual = INICIAL;
+            glutPostRedisplay();
+            break;
+    }
+}
+
+GLvoid iniciarJogoComDificuldade(GLint dificuldade) {
+    // Limpa o estado anterior
+    for (int i = 0; i < navesInimigas.size(); i++) {
+        delete navesInimigas[i]; 
+    }
+    navesInimigas.clear(); 
+    for (int i = 0; i < projeteisJogador.size(); i++) {
+        delete projeteisJogador[i]; 
+    }
+    projeteisJogador.clear();
+    for (int i = 0; i < projeteisInimigos.size(); i++) {
+        delete projeteisInimigos[i];
+    }
+    projeteisInimigos.clear();
+
+    // Configura a dificuldade
+    switch (dificuldade) {
+        case 1:
+            dificuldadeSelecionada = 1;
+            vidasJogador = 5;
+            intervaloDisparo = 0.25f; // Tiro mais rápido
+            intervaloDisparoInimigo = 3.0f; // Inimigos atiram mais devagar
+            razaoInimigoVertical = 0.2f;
+            razaoInimigosHorizontal = 0.8f;
+            break;
+        case 2:
+            dificuldadeSelecionada = 2;
+            vidasJogador = 3;
+            intervaloDisparo = 1.5f;
+            intervaloDisparoInimigo = 2.0f;
+            razaoInimigoVertical = 0.2f;
+            razaoInimigosHorizontal = 0.8f;
+            break;
+        case 3:
+            dificuldadeSelecionada = 3;
+            vidasJogador = 2;
+            intervaloDisparo = 1.5f;
+            intervaloDisparoInimigo = 1.0f; // Inimigos atiram mais rápido
+            razaoInimigoVertical = 0.3f; // Mais inimigos
+            razaoInimigosHorizontal = 0.8f;
+            break;
+    }
+
+    // Reseta outras variáveis
+    inimigosEliminados = 0;
+    tempoJogo = 0.0f;
+    pontuacaoTotal = 0;
+    ultimoTiroInimigo = 0.0f;
+
+    // Inicia o jogo
+    criarNaveJogador();
+    criarNavesInimigo();
+
+    // Muda para o estado de jogo
+    estadoAtual = JOGANDO;
+    glutDisplayFunc(desenhaEcraJogo);
+    glutKeyboardFunc(tecladoJogo);
+    glutIdleFunc(idleJogo);
+    glutPostRedisplay();
+}
+
 
 /*----funcoes de suporte do jogo----*/
 GLvoid desenhaUIEcraSuporte(GLvoid){
     stringstream buffer;
     char caracter;
 
-    glColor3f(0.0f, 1.0f, 0.0f); 
+    // Título
+    glColor3f(0.0f, 1.0f, 0.0f);
     buffer.str("");
     buffer.clear();
-    buffer << "GAME HELP"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)+10.0f, 0.0f);
-    while (buffer.get(caracter)){
+    buffer << "GAME HELP";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f + 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, caracter);
     }
 
+    // Instruções
     glColor3f(1.0f, 1.0f, 1.0f);
     buffer.str("");
     buffer.clear();
-    buffer<<"W, S, A, D - Move the ship in cardinal directions"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-5.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f), 0.0f);
-    while (buffer.get(caracter)){
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
-    }
-    glColor3f(1.0f, 1.0f, 1.0f);
-    buffer.str("");
-    buffer.clear();
-    buffer<<"Q, E - Rotate the ship in 90 degree angles"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-5.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-1.0f, 0.0f);
-    while (buffer.get(caracter)){
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
-    }
-    glColor3f(1.0f, 1.0f, 1.0f);
-    buffer.str("");
-    buffer.clear();
-    buffer<<"Space - Shoot"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-5.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-2.0f, 0.0f);
-    while (buffer.get(caracter)){
+    buffer << "W, S, A, D - Move the ship in cardinal directions";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 5.0f, 
+                  coordenadasMundo[3]/2.0f, 0.0f);
+    while (buffer.get(caracter)) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 
-    glColor3f(1.0f, 1.0f, 1.0f);
     buffer.str("");
     buffer.clear();
-    buffer<<"Press B to go back"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-3.0f, 0.0f);
-    while (buffer.get(caracter)){
+    buffer << "Q, E - Rotate the ship in 90 degree angles";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 5.0f, 
+                  coordenadasMundo[3]/2.0f - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    buffer.str("");
+    buffer.clear();
+    buffer << "Space - Shoot";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 5.0f, 
+                  coordenadasMundo[3]/2.0f - 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    // Voltar
+    glColor3f(0.0f, 1.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Press ENTER to go back";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 4.0f, 0.0f);
+    while (buffer.get(caracter)) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 }
@@ -268,8 +476,8 @@ GLvoid idleEcraSuporte(GLvoid){
 GLvoid tecladoSuporte(unsigned char tecla, int x, int y){
     switch (tecla)
     {
-    case 'b':
-    case 'B':
+    
+    case 13:
         //depende qual era o ultimo estado. Se era o pausa, volta ao estado de pausa, se era o ecra inicial, volta ao ecra inicial
         std::cout << "Estado atual: " << (estadoAtual == AJUDAPAUSA ? "AJUDAPAUSA" : "AJUDAINICIAL") << std::endl;
         
@@ -301,39 +509,45 @@ GLvoid desenhaUIEcraPausa(GLvoid){
     stringstream buffer;
     char caracter;
 
-    glColor3f(0.0f, 1.0f, 0.0f); 
+    // Título
+    glColor3f(0.0f, 1.0f, 0.0f);
     buffer.str("");
     buffer.clear();
-    buffer << "GAME PAUSED"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)+10.0f, 0.0f);
-    while (buffer.get(caracter)){
+    buffer << "GAME PAUSED";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f + 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, caracter);
     }
 
-    glColor3f(1.0f, 1.0f, 1.0f);
+    // Instruções
+    glColor3f(0.0f, 1.0f, 0.0f);
     buffer.str("");
     buffer.clear();
-    buffer << "Press ENTER to continue"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f), 0.0f);
-    while (buffer.get(caracter)){
+    buffer << "Press ENTER to continue";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f, 0.0f);
+    while (buffer.get(caracter)) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 
     glColor3f(1.0f, 1.0f, 1.0f);
     buffer.str("");
     buffer.clear();
-    buffer << "Press M to return to menu"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-1.0f, 0.0f);
-    while (buffer.get(caracter)){
+    buffer << "Press M to return to menu";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 
     glColor3f(1.0f, 1.0f, 1.0f);
     buffer.str("");
     buffer.clear();
-    buffer << "Press H for help"<<endl;
-    glRasterPos3f(coordenadasMundo[0]+((coordenadasMundo[1]-coordenadasMundo[0])/2.0f)-3.0f, coordenadasMundo[2] + ((coordenadasMundo[3]-coordenadasMundo[2])/2.0f)-2.0f, 0.0f);
-    while (buffer.get(caracter)){
+    buffer << "Press H for help";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
     }
 }
@@ -394,17 +608,206 @@ GLvoid tecladoPausa(unsigned char tecla, int x, int y){
 }
 
 /*----Funcoes GameOver----*/
-GLvoid desenhaUIGameOver(GLvoid){
-    //TODO
+GLvoid desenhaUIGameOver(GLvoid) {
+    audioManager->tocarGameOver();
+    stringstream buffer;
+    char caracter;
+
+    // Título
+    glColor3f(1.0f, 0.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "GAME OVER";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f + 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, caracter);
+    }
+
+    // Estatísticas
+    glColor3f(1.0f, 1.0f, 1.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Game Time: " << (int)tempoJogo << " seconds";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    buffer.str("");
+    buffer.clear();
+    buffer << "Enemies eliminated: " << inimigosEliminados;
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    // Voltar
+    glColor3f(0.0f, 1.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Press ENTER to play again";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 3.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
 }
-GLvoid desenhaEcraGameOver(GLvoid){
-    //TODO
+
+GLvoid desenhaEcraGameOver(GLvoid) {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();  
+     
+    gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    desenhaUIGameOver();
+
+    glutSwapBuffers();
 }
-GLvoid idleEcraGameOver(GLvoid){
-    //TODO
+
+GLvoid tecladoGameOver(unsigned char tecla, int x, int y) {
+    switch(tecla) {
+        case 13: //ENTER para voltar ao menu de início de jogo 
+            // Limpa as naves inimigas e projéteis
+            for (NaveInimiga* nave : navesInimigas) {
+                delete nave; 
+            }
+            navesInimigas.clear(); 
+            for (Projetil* proj : projeteisJogador) {
+                delete proj; 
+            }
+            projeteisJogador.clear(); 
+            for (Projetil* proj : projeteisInimigos) {
+                delete proj;
+            }
+            projeteisInimigos.clear();
+
+            glutDisplayFunc(desenhaEcraInicial);
+            glutKeyboardFunc(tecladoEcraInicial);
+            glutIdleFunc(idleEcraInicial);
+            estadoAtual = INICIAL;
+            glutPostRedisplay();
+            break;
+    }
 }
-GLvoid tecladoGameOver(unsigned char tecla, int x, int y){
-    //TODO
+
+GLvoid idleEcraGameOver(GLvoid) {
+    // Não faz nada, apenas mantém a tela de game over estática
+    glutPostRedisplay();
+}
+
+/*----Funcoes GameWIn----*/
+GLvoid desenhaUIGameWIn(GLvoid) {
+    audioManager->tocarVitoria();
+    stringstream buffer;
+    char caracter;
+
+    // Título
+    glColor3f(0.0f, 1.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "VICTORY!";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, 
+                  coordenadasMundo[3]/2.0f + 2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, caracter);
+    }
+
+    // Estatísticas
+    glColor3f(1.0f, 1.0f, 1.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Score: " << (dificuldadeSelecionada == 1 ? 0 : pontuacaoTotal);
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f + 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    buffer.str("");
+    buffer.clear();
+    buffer << "Game Time: " << (int)tempoJogo << " seconds";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    buffer.str("");
+    buffer.clear();
+    buffer << "Enemies eliminated: " << inimigosEliminados;
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    // Voltar
+    glColor3f(0.0f, 1.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Press ENTER to play again";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 3.0f, 
+                  coordenadasMundo[3]/2.0f - 3.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+}
+
+GLvoid desenhaEcraGameWIn(GLvoid) {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();  
+     
+    gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    desenhaUIGameWIn();
+
+    glutSwapBuffers();
+}
+
+GLvoid idleEcraGameWIn(GLvoid) {
+    // Não faz nada, apenas mantém a tela de vitória estática
+    glutPostRedisplay();
+}
+
+GLvoid tecladoGameWIn(unsigned char tecla, int x, int y) {
+    switch(tecla) {
+        case 13: //ENTER para voltar ao menu de início de jogo
+            // Limpa as naves inimigas e projéteis
+            for (NaveInimiga* nave : navesInimigas) {
+                delete nave; 
+            }
+            navesInimigas.clear(); 
+            for (Projetil* proj : projeteisJogador) {
+                delete proj; 
+            }
+            projeteisJogador.clear(); 
+            for (Projetil* proj : projeteisInimigos) {
+                delete proj;
+            }
+            projeteisInimigos.clear();
+
+            glutDisplayFunc(desenhaEcraInicial);
+            glutKeyboardFunc(tecladoEcraInicial);
+            glutIdleFunc(idleEcraInicial);
+            estadoAtual = INICIAL;
+            glutPostRedisplay();
+            break;
+    }
 }
 
 /*----funcao cria nave jogador----*/
@@ -460,89 +863,270 @@ GLvoid criarNavesInimigo(){
 
 /*----funcoes do jogo----*/
 
+GLvoid moverNavesInimigas(GLvoid) {
+    GLboolean mudarDirecao = false;
+    GLfloat limiteEsquerda = coordenadasMundo[0] + (naveInimigaTamanho[0] * escala) / 2;
+    GLfloat limiteDireita = coordenadasMundo[1] - (naveInimigaTamanho[0] * escala) / 2;
 
-/*----fim funcoes do jogo----*/
+    // Verifica se alguma nave atingiu os limites
+    for(NaveInimiga* nave : navesInimigas) {
+        if(nave) {
+            GLfloat* posicao = nave->getPosicaoNaveInimiga();
+            if((movendoDireita && posicao[0] >= limiteDireita) || 
+               (!movendoDireita && posicao[0] <= limiteEsquerda)) {
+                mudarDirecao = true;
+                break;
+            }
+        }
+    }
 
-GLvoid desenhaEcraJogo(GLvoid) {
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    // Se atingiu o limite, muda a direção e desce
+    if(mudarDirecao) {
+        movendoDireita = !movendoDireita;
+        ciclosMovimento++;
+        
+        if(ciclosMovimento >= ciclosParaDescer) {
+            // Move todas as naves para baixo
+            for(NaveInimiga* nave : navesInimigas) {
+                if(nave) {
+                    GLfloat* posicao = nave->getPosicaoNaveInimiga();
+                    nave->setPosicaoNaveInimiga(posicao[0], posicao[1] - distanciaVerticalInimigos);
+                    
+                    // Verifica se alguma nave atingiu o limite inferior
+                    if(posicao[1] - distanciaVerticalInimigos <= coordenadasMundo[2] + (naveInimigaTamanho[1] * escala)) {
+                        // Game Over
+                        estadoAtual = GAMEOVER;
+                        glutDisplayFunc(desenhaEcraGameOver);
+                        glutKeyboardFunc(tecladoGameOver);
+                        glutIdleFunc(idleEcraGameOver);
+                        glutPostRedisplay();
+                        return;
+                    }
+                }
+            }
+            ciclosMovimento = 0;
+        }
+    }
+
+    // Move todas as naves na direção atual
+    for(NaveInimiga* nave : navesInimigas) {
+        if(nave) {
+            GLfloat* posicao = nave->getPosicaoNaveInimiga();
+            GLfloat novaPosicao = posicao[0] + (movendoDireita ? velocidadeHorizontalInimigos : -velocidadeHorizontalInimigos);
+            nave->setPosicaoNaveInimiga(novaPosicao, posicao[1]);
+        }
+    }
+}
+
+GLvoid verificaColisaoJogadorInimigo() {
+    if (!naveJogador) return;
     
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();  
-     
-    gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    // Desenha a nave do jogador
-    if (naveJogador) {
-        //std::cout << "Posição da nave: X=" << naveJogador->getPosicao()[0] << ", Y=" << naveJogador->getPosicao()[1]<< "\t Angulo de ataque na nave: "<< naveJogador->getAnguloRotacao()  << std::endl;
-        naveJogador->desenha();
-    } else {
-        std::cerr << "Erro: Nave do jogador não foi criada!" << std::endl;
-    }
-
-    // Desenha todas as naves inimigas
-    for(NaveInimiga* naveInimiga : navesInimigas) {
+    GLfloat* posicaoJogador = naveJogador->getPosicao();
+    GLfloat tamanhoJogador = naveJogadorTamanho[0]*escala; // Tamanho padrão da nave do jogador
+    
+    for (int i = 0; i < navesInimigas.size(); i++) {
+        NaveInimiga* naveInimiga = navesInimigas[i];
         if (naveInimiga) {
-            naveInimiga->desenhaNaveInimiga();
-        } else {
-            std::cerr << "Erro: Nave inimiga não foi criada!" << std::endl;
+            GLfloat* posicaoInimiga = naveInimiga->getPosicaoNaveInimiga();
+            GLfloat tamanhoInimigo = naveInimigaTamanho[0]*escala;
+            
+            // Verifica colisão
+            if (posicaoJogador[0] + tamanhoJogador >= posicaoInimiga[0] - tamanhoInimigo &&
+                posicaoJogador[0] - tamanhoJogador <= posicaoInimiga[0] + tamanhoInimigo &&
+                posicaoJogador[1] + tamanhoJogador >= posicaoInimiga[1] - tamanhoInimigo &&
+                posicaoJogador[1] - tamanhoJogador <= posicaoInimiga[1] + tamanhoInimigo) {
+                
+                // Remove a nave inimiga
+                delete naveInimiga;
+                navesInimigas.erase(navesInimigas.begin() + i);
+                
+                // Reduz uma vida do jogador
+                vidasJogador--;
+                
+                // Verifica se o jogo acabou
+                if (vidasJogador <= 0) {
+                    estadoAtual = GAMEOVER;
+                    glutDisplayFunc(desenhaEcraGameOver);
+                    glutKeyboardFunc(tecladoGameOver);
+                    glutIdleFunc(idleEcraGameOver);
+                    glutPostRedisplay();
+                    return;
+                }
+                
+                std::cout << "Colisão com nave inimiga! Vidas restantes: " << vidasJogador << std::endl;
+                audioManager->tocarColisao();
+                break;
+            }
+        }
+    }
+}
+
+GLvoid verificaPosicaoJogador() {
+    if (!naveJogador || navesInimigas.empty()) {
+        jogadorAtrasLinhaInimiga = false;
+        return;
+    }
+
+    GLfloat* posicaoJogador = naveJogador->getPosicao();
+    GLfloat posicaoYInimigoMaisBaixo = coordenadasMundo[3];
+
+    for (NaveInimiga* nave : navesInimigas) {
+        if (nave) {
+            GLfloat* posicaoInimigo = nave->getPosicaoNaveInimiga();
+            if (posicaoInimigo[1] < posicaoYInimigoMaisBaixo) {
+                posicaoYInimigoMaisBaixo = posicaoInimigo[1];
+            }
         }
     }
 
-    // Desenha todos os projéteis do jogador
-    for(Projetil* projetil : projeteisJogador) {
-        if (projetil) {
-            projetil->desenhaProjetil();
-        }
+    jogadorAtrasLinhaInimiga = (posicaoJogador[1] > posicaoYInimigoMaisBaixo);
+    
+    if (jogadorAtrasLinhaInimiga) {
+        pontuacaoTotal = pontuacaoTotal -5;
+        vidasJogador = vidasJogador <= 1 ? 1: vidasJogador -1 ; 
+        audioManager->tocarAviso();
     }
-
-    glutSwapBuffers();
 }
 
 GLvoid idleJogo(GLvoid) {
-    //Mover projeteis do jogador e remover em caso de colisoes
+    GLfloat tempoAtual = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
     
-    for (GLint i = 0; i < projeteisJogador.size(); i++){
+    // Atualiza o tempo de jogo
+    if (tempoAtual - ultimoTempoAtualizacao >= 1.0f) {
+        tempoJogo += 1.0f;
+        ultimoTempoAtualizacao = tempoAtual;
+    }
+
+    // Verifica a posição do jogador
+    verificaPosicaoJogador();
+
+    // Verifica colisão entre jogador e inimigos
+    verificaColisaoJogadorInimigo();
+
+    // Move as naves inimigas
+    moverNavesInimigas();
+    
+    // Move os projéteis do jogador
+    for (int i = 0; i < projeteisJogador.size(); i++) {
         Projetil* projetil = projeteisJogador[i];
-        if (projetil){
+        if (projetil) {
             if (projetil->moveProjetil()) {
-                // Se saiu o metodo devolve true
-                delete projetil; 
-                projeteisJogador.erase(projeteisJogador.begin() + i); 
-                i--; 
-            } else {
-                // se ainda esta na janela, vai verificar se ha colisao com naves inimigas
-                for (GLint j = 0; j < navesInimigas.size(); j++) {
-                    NaveInimiga* naveInimiga = navesInimigas[j];
-                    if (naveInimiga) {
-                        GLfloat* posicaoNave = naveInimiga->getPosicaoNaveInimiga();
+                // Se o projétil saiu da tela, remove-o
+                delete projetil;
+                projeteisJogador.erase(projeteisJogador.begin() + i);
+                i--; // Ajusta o índice pois removemos um elemento
+                continue;
+            }
+            
+            // Verifica colisão com naves inimigas
+            for (int j = 0; j < navesInimigas.size(); j++) {
+                NaveInimiga* naveInimiga = navesInimigas[j];
+                if (naveInimiga) {
+                    GLfloat* posicaoInimiga = naveInimiga->getPosicaoNaveInimiga();
+                    GLfloat tamanhoInimigo = naveInimigaTamanho[0] * escala;
+                    
+                    if (projetil->verificaColisao(posicaoInimiga, &tamanhoInimigo)) {
+                        // Remove o projétil e a nave inimiga
+                        delete projetil;
+                        projeteisJogador.erase(projeteisJogador.begin() + i);
+                        i--;
                         
-                        // Verifica se o projétil colidiu com a nave inimiga
-                        if (projetil->verificaColisao(posicaoNave, naveInimigaTamanho)) {
-                            
-                            // Remove o projétil
-                            delete projetil;
-                            projeteisJogador.erase(projeteisJogador.begin() + i);
-                            i--;
-                            
-                            // Remove a nave inimiga
-                            delete naveInimiga;
-                            navesInimigas.erase(navesInimigas.begin() + j);
-                            
-                            std::cout << "Nave inimiga destruída! Naves restantes: " << navesInimigas.size() << std::endl;
-                            break; 
-                        }
+                        delete naveInimiga;
+                        navesInimigas.erase(navesInimigas.begin() + j);
+                        
+                        // Atualiza pontuação
+                        inimigosEliminados++;
+                        pontuacaoTotal += 10; // 10 pontos por inimigo eliminado
+                        audioManager->tocarExplosao();
+                        break;
                     }
                 }
             }
         }
     }
     
-    // TODO mover as naves inimigas
-    
+    // Lógica de tiro dos inimigos
+    if (tempoAtual - ultimoTiroInimigo >= intervaloDisparoInimigo) {
+        // Escolhe uma nave inimiga aleatória para atirar
+        if (!navesInimigas.empty()) {
+            int indiceAleatorio = rand() % navesInimigas.size();
+            NaveInimiga* naveAtiradora = navesInimigas[indiceAleatorio];
+            
+            if (naveAtiradora) {
+                GLfloat* posicaoNave = naveAtiradora->getPosicaoNaveInimiga();
+                // Cria um projétil inimigo apontando para baixo (direção 3)
+                Projetil* novoProjetil = new Projetil(posicaoNave[0], posicaoNave[1], 3, false);
+                projeteisInimigos.push_back(novoProjetil);
+                ultimoTiroInimigo = tempoAtual;
+            }
+        }
+    }
+
+    // Move os projéteis inimigos
+    for (int i = 0; i < projeteisInimigos.size(); i++) {
+        Projetil* projetil = projeteisInimigos[i];
+        if (projetil) {
+            projetil->moveProjetil();
+            
+            // Verifica se o projétil está fora da tela
+            if (!projetil->estaNaTela()) {
+                delete projetil;
+                projeteisInimigos.erase(projeteisInimigos.begin() + i);
+                i--; // Ajusta o índice pois removemos um elemento
+                continue;
+            }
+            
+            // Verifica colisão com o jogador
+            if (naveJogador) {
+                GLfloat* posicaoJogador = naveJogador->getPosicao();
+                GLfloat tamanhoJogador = naveJogadorTamanho[0] * escala;
+                
+                if (projetil->verificaColisao(posicaoJogador, &tamanhoJogador)) {
+                    // Remove o projétil
+                    delete projetil;
+                    projeteisInimigos.erase(projeteisInimigos.begin() + i);
+                    i--;
+                    
+                    // Reduz uma vida do jogador
+                    vidasJogador--;
+                    
+                    // Verifica se o jogo acabou
+                    if (vidasJogador <= 0) {
+                        estadoAtual = GAMEOVER;
+                        glutDisplayFunc(desenhaEcraGameOver);
+                        glutKeyboardFunc(tecladoGameOver);
+                        glutIdleFunc(idleEcraGameOver);
+                        glutPostRedisplay();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // Verifica se o jogador ganhou (eliminou todos os inimigos)
+    if (navesInimigas.empty()) {
+        // Calcula bônus de tempo
+        GLint bonusTempo = (int)(1000 / tempoJogo); // Bônus inversamente proporcional ao tempo
+        pontuacaoTotal += bonusTempo;
+        
+        // Calcula bônus de vidas
+        GLint bonusVidas = vidasJogador * 500; // 500 pontos por vida restante
+        pontuacaoTotal += bonusVidas;
+        
+        estadoAtual = GAMEWIN;
+        glutDisplayFunc(desenhaEcraGameWIn);
+        glutKeyboardFunc(tecladoGameWIn);
+        glutIdleFunc(idleEcraGameWIn);
+        glutPostRedisplay();
+        return;
+    }
+
+    // Atualiza o sistema de áudio
+    if (audioManager) {
+        audioManager->atualizar();
+    }
+
     glutPostRedisplay();
 }
 
@@ -578,6 +1162,8 @@ GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
                 
                 // Atualiza o tempo do último disparo
                 ultimoDisparo = tempoAtual;
+                
+                audioManager->tocarTiro();
                 
                 glutPostRedisplay();
             }
@@ -637,6 +1223,128 @@ GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
     }
 }
 
+GLvoid desenhaStatusDisparo(GLvoid) {
+    stringstream buffer;
+    char caracter;
+    GLfloat tempoAtual = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    GLfloat tempoRestante = intervaloDisparo - (tempoAtual - ultimoDisparo);
+
+    if (tempoRestante <= 0) {
+        // Pode atirar
+        glColor3f(0.0f, 1.0f, 0.0f); // Verde
+        buffer.str("");
+        buffer.clear();
+        buffer << "FIRE!";
+    } else {
+        // Carregando
+        glColor3f(1.0f, 0.0f, 0.0f); // Vermelho
+        buffer.str("");
+        buffer.clear();
+        buffer << "LOADING...";
+    }
+
+    glRasterPos3f(coordenadasMundo[0] + 1.0f, coordenadasMundo[2] + 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+}
+
+GLvoid desenhaUIJogo(GLvoid) {
+    stringstream buffer;
+    char caracter;
+
+    // Desenha as vidas
+    glColor3f(1.0f, 0.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Lifes: " << vidasJogador;
+    glRasterPos3f(coordenadasMundo[0] + 1.0f, coordenadasMundo[3] - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    // Desenha o tempo
+    glColor3f(1.0f, 1.0f, 1.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Time: " << (int)tempoJogo << "s";
+    glRasterPos3f(coordenadasMundo[0] + ((coordenadasMundo[1] - coordenadasMundo[0])/2.0f) - 2.0f, coordenadasMundo[3] - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    // Desenha o número de inimigos eliminados
+    glColor3f(0.0f, 1.0f, 0.0f);
+    buffer.str("");
+    buffer.clear();
+    buffer << "Enemies: " << inimigosEliminados;
+    glRasterPos3f(coordenadasMundo[1] - 5.0f, coordenadasMundo[3] - 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
+
+    // Desenha o aviso de posição atrás da linha inimiga
+    if (jogadorAtrasLinhaInimiga) {
+        glColor3f(1.0f, 0.0f, 0.0f); // Vermelho para o aviso
+        buffer.str("");
+        buffer.clear();
+        buffer << "BEHIND ENEMY LINES!";
+        glRasterPos3f(coordenadasMundo[1] - 10.0f, coordenadasMundo[2] + 1.0f, 0.0f);
+        while (buffer.get(caracter)) {
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+        }
+    }
+
+    // Desenha o status do disparo
+    desenhaStatusDisparo();
+}
+
+GLvoid desenhaEcraJogo(GLvoid) {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();  
+     
+    gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Desenha a nave do jogador
+    if (naveJogador) {
+        naveJogador->desenha();
+    } else {
+        std::cerr << "Erro: Nave do jogador não foi criada!" << std::endl;
+    }
+
+    // Desenha todas as naves inimigas
+    for(NaveInimiga* naveInimiga : navesInimigas) {
+        if (naveInimiga) {
+            naveInimiga->desenhaNaveInimiga();
+        }
+    }
+
+    // Desenha todos os projéteis do jogador
+    for(Projetil* projetil : projeteisJogador) {
+        if (projetil) {
+            projetil->desenhaProjetil();
+        }
+    }
+
+    // Desenha todos os projéteis inimigos
+    for(Projetil* projetil : projeteisInimigos) {
+        if (projetil) {
+            projetil->desenhaProjetil();
+        }
+    }
+
+    // Desenha a UI do jogo
+    desenhaUIJogo();
+
+    glutSwapBuffers();
+}
+
 
 
 int main (int argc, char*argv[]){
@@ -655,6 +1363,13 @@ int main (int argc, char*argv[]){
     glutIdleFunc(idleEcraInicial);
     glutKeyboardFunc(tecladoEcraInicial); 
 
+    // Inicializa o gerenciador de áudio
+    audioManager = new AudioManager();
+    if (!audioManager->inicializar()) {
+        std::cerr << "Erro ao inicializar o sistema de áudio" << std::endl;
+        delete audioManager;
+        return 1;
+    }
 
     glutMainLoop();//Inicia o ciclo de eventos que permite detetar eventos
 
