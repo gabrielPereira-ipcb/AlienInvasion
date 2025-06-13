@@ -65,7 +65,7 @@ GLfloat escala = 0.25f;
 GLfloat razaoInimigoVertical = 0.2f; // grade de inimigos cobre 20% do 
 GLfloat razaoInimigosHorizontal = 0.8f; //grade inimigos cobre 80%....
 
-GLfloat tamanhoProjetil = (naveInimigaTamanho[1]*escala)/2;// Aumentado para metade do tamanho da nave inimiga
+GLfloat tamanhoProjetil = (naveJogadorTamanho[0]*escala)/2;// Aumentado para metade do tamanho da nave inimiga
 
 GLint larguraEcra = 720, alturaEcra = 720;
 
@@ -86,6 +86,10 @@ NaveJogador* naveJogador; // ponteiro para a nave do jogador
 
 vector <NaveInimiga*> navesInimigas; 
 vector <Projetil*> projeteisJogador; 
+
+// Variáveis para controle do timer de disparo
+GLfloat ultimoDisparo = 0.0f;
+GLfloat intervaloDisparo = 1.5f; // Intervalo de 1.5 segundos entre disparos
 
 
 /*----Funcoes do ecra inicial----*/
@@ -473,7 +477,7 @@ GLvoid desenhaEcraJogo(GLvoid) {
 
     // Desenha a nave do jogador
     if (naveJogador) {
-        std::cout << "Posição da nave: X=" << naveJogador->getPosicao()[0] << ", Y=" << naveJogador->getPosicao()[1]<< "\t Angulo de ataque na nave: "<< naveJogador->getAnguloRotacao()  << std::endl;
+        //std::cout << "Posição da nave: X=" << naveJogador->getPosicao()[0] << ", Y=" << naveJogador->getPosicao()[1]<< "\t Angulo de ataque na nave: "<< naveJogador->getAnguloRotacao()  << std::endl;
         naveJogador->desenha();
     } else {
         std::cerr << "Erro: Nave do jogador não foi criada!" << std::endl;
@@ -499,19 +503,54 @@ GLvoid desenhaEcraJogo(GLvoid) {
 }
 
 GLvoid idleJogo(GLvoid) {
-    // mover os projéteis do jogador
-    for(Projetil* projetil : projeteisJogador) {
-        if (projetil) {
-            projetil->moveProjetil();
+    //Mover projeteis do jogador e remover em caso de colisoes
+    
+    for (GLint i = 0; i < projeteisJogador.size(); i++){
+        Projetil* projetil = projeteisJogador[i];
+        if (projetil){
+            if (projetil->moveProjetil()) {
+                // Se saiu o metodo devolve true
+                delete projetil; 
+                projeteisJogador.erase(projeteisJogador.begin() + i); 
+                i--; 
+            } else {
+                // se ainda esta na janela, vai verificar se ha colisao com naves inimigas
+                for (GLint j = 0; j < navesInimigas.size(); j++) {
+                    NaveInimiga* naveInimiga = navesInimigas[j];
+                    if (naveInimiga) {
+                        GLfloat* posicaoNave = naveInimiga->getPosicaoNaveInimiga();
+                        
+                        // Verifica se o projétil colidiu com a nave inimiga
+                        if (projetil->verificaColisao(posicaoNave, naveInimigaTamanho)) {
+                            
+                            // Remove o projétil
+                            delete projetil;
+                            projeteisJogador.erase(projeteisJogador.begin() + i);
+                            i--;
+                            
+                            // Remove a nave inimiga
+                            delete naveInimiga;
+                            navesInimigas.erase(navesInimigas.begin() + j);
+                            
+                            std::cout << "Nave inimiga destruída! Naves restantes: " << navesInimigas.size() << std::endl;
+                            break; 
+                        }
+                    }
+                }
+            }
         }
     }
+    
+    // TODO mover as naves inimigas
+    
     glutPostRedisplay();
 }
 
 GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
     GLboolean move = false;
     GLboolean rotaciona = false;
-    GLboolean projeteisAtivos = false; // Variável para verificar se há projéteis ativos
+    GLboolean projeteisAtivos = false;
+    GLfloat tempoAtual = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 
     switch (tecla) {
     case 27: // "ESC"
@@ -524,27 +563,26 @@ GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
         break;
 
     case 32: // space
-        // jogador "dispara" um projetil
-        if (naveJogador) {
-            GLfloat* posicaoNave = naveJogador->getPosicao();
-            GLfloat angulo = naveJogador->getAnguloRotacao();
+        if (tempoAtual - ultimoDisparo >= intervaloDisparo) {
+            // jogador "dispara" um projetil
+            if (naveJogador) {
+                GLfloat* posicaoNave = naveJogador->getPosicao();
+                GLfloat angulo = naveJogador->getAnguloRotacao();
             
-            // Calcula a posição do bico da nave
-            GLfloat offsetX = 0.0f;
-            GLfloat offsetY = (naveJogadorTamanho[1]/2) * 1.5f * escala; // Metade da altura da nave * 1.5 (altura do bico) * escala
-            
-            // Rotaciona o offset baseado no ângulo da nave
-            GLfloat rad = (angulo * M_PI) / 180.0f;
-            GLfloat posX = posicaoNave[0] + (offsetX * cos(rad) - offsetY * sin(rad));
-            GLfloat posY = posicaoNave[1] + (offsetX * sin(rad) + offsetY * cos(rad));
-            
-            // Cria um novo projétil na posição do bico da nave
-            Projetil* novoProjetil = new Projetil(posX, posY, (int)(angulo/90.0f), true);
-            projeteisJogador.push_back(novoProjetil);
+                // Cria um novo projétil na posição do bico da nave
+                Projetil* novoProjetil = new Projetil(posicaoNave[0], posicaoNave[1], (int)(angulo/90.0f), true);
+                projeteisJogador.push_back(novoProjetil);
 
-            std::cout << "Projétil criado na posição: X=" << posX << ", Y=" << posY << " com ângulo: " << angulo << std::endl;
-            projeteisAtivos = true; 
-            glutPostRedisplay();
+                std::cout << "Projétil criado na posição: X=" << posicaoNave[0] << ", Y=" << posicaoNave[1] << " com ângulo: " << angulo << std::endl;
+                projeteisAtivos = true;
+                
+                // Atualiza o tempo do último disparo
+                ultimoDisparo = tempoAtual;
+                
+                glutPostRedisplay();
+            }
+        } else {
+            std::cout << "Aguarde " << (intervaloDisparo - (tempoAtual - ultimoDisparo)) << " segundos para disparar novamente." << std::endl;
         }
         break;
     
@@ -555,45 +593,43 @@ GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
     case 'w':
     case 'W': //vai para cima
         move = naveJogador->moverNave(2); 
+        std::cout << "X = " << naveJogador->getPosicao()[0] << ", Y = " << naveJogador->getPosicao()[1] << std::endl;
         break;
 
     case 'a':
     case 'A': //vai para esquerda
         move = naveJogador->moverNave(1);
+        std::cout << "X = " << naveJogador->getPosicao()[0] << ", Y = " << naveJogador->getPosicao()[1] << std::endl;
         break;
 
     case 's':
     case 'S': //vai para baixo
         move = naveJogador->moverNave(3);
+        std::cout << "X = " << naveJogador->getPosicao()[0] << ", Y = " << naveJogador->getPosicao()[1] << std::endl;
         break;
 
     case 'd':
     case 'D': //vai para direita
         move = naveJogador->moverNave(0);
+        std::cout << "X = " << naveJogador->getPosicao()[0] << ", Y = " << naveJogador->getPosicao()[1] << std::endl;
         break;
     case 'q':
     case 'Q': //roda 90graus "esquerda" "anti-horario"
         rotaciona = naveJogador->rodarNave(1);
+        std::cout <<" Angulo de rotação: " << naveJogador->getAnguloRotacao() << std::endl;
+
         break;
     case 'e':
     case 'E': //roda -90graus "direita" "horario"
         rotaciona = naveJogador->rodarNave(0);
+        std::cout <<" Angulo de rotação: " << naveJogador->getAnguloRotacao() << std::endl;
         break;
     }
     
 
     //se a nave se mexeu ou rotacionou é preciso redesenhar
     if (move || rotaciona || projeteisAtivos) {
-        if (move) {
-            std::cout << "Nave movida!" << std::endl;
-        }
-        if (rotaciona) {
-            std::cout << "Nave rotacionada!" << std::endl;
-        }
-        if (projeteisAtivos) {
-            std::cout << "Projéteis ativos!" << std::endl;
-        }
-        glutPostRedisplay(); // Redesenha a cena
+        glutPostRedisplay();
     }
     
     else {

@@ -13,7 +13,8 @@ class Projetil {
         Projetil(GLfloat x, GLfloat y, GLint d, GLboolean dono);
         GLvoid corpoProjetil();
         GLvoid desenhaProjetil();
-        GLvoid moveProjetil();
+        GLboolean moveProjetil();
         GLfloat* getPosicaoProjetil();
+        GLboolean verificaColisao(GLfloat* posicaoInimigo, GLfloat* tamanhoInimigo);
         ~Projetil();
 };
