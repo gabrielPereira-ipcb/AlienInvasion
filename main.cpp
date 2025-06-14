@@ -3,37 +3,36 @@
 #include "NaveJogador.h"
 #include "NaveInimiga.h"
 #include "Projetil.h"
-#include "AudioManager.h"
 
-using namespace std;// Usar o namespace std para evitar escrever std:: antes de cada função da biblioteca padrão
-
+using namespace std;// usar o namespace std para evitar escrever std:: antes de cada função da biblioteca padrão
 
 
-/*----Funcoes auxiliares----*/
-GLvoid criarNaveJogador(GLvoid); //funcao auxliar 
-GLvoid criarNavesInimigo(GLvoid); //funcao auxiliar
+
+
+GLvoid criarNaveJogador(GLvoid); 
+GLvoid criarNavesInimigo(GLvoid); 
 
 /*----Funcoes para seleção de dificuldade----*/
 GLvoid desenhaUISelecaoDificuldade(GLvoid);
 GLvoid desenhaEcraSelecaoDificuldade(GLvoid);
 GLvoid idleEcraSelecaoDificuldade(GLvoid);
 GLvoid tecladoSelecaoDificuldade(unsigned char tecla, int x, int y);
-GLvoid iniciarJogoComDificuldade(GLint dificuldade); //funcao auxiliar para iniciar o jogo com a dificuldade selecionada
+GLvoid iniciarJogoComDificuldade(GLint dificuldade);
 
 /*----Funcoes referentes ao estado de jogo----*/
-GLvoid desenhaEcraJogo(GLvoid); //funcao auxiliar para desenhar o ecra do jogo
-GLvoid desenhaUIJogo(GLvoid); //funcao auxiliar para desenho da UI do jogo
-GLvoid desenhaStatusDisparo(GLvoid); //funcao auxiliar para desenhar o status do disparo
-GLvoid idleJogo(GLvoid); //funcao auxiliar para o idle do jogo. 
-GLvoid tecladoJogo(unsigned char tecla, int x, int y); //funcao auxiliar para o teclado do jogo
+GLvoid desenhaEcraJogo(GLvoid); 
+GLvoid desenhaUIJogo(GLvoid); 
+GLvoid idleJogo(GLvoid); 
+GLvoid tecladoJogo(unsigned char tecla, int x, int y);
 
 
 /*----funcoes para o estado inicial----*/
-GLvoid desenhaUIEcraInicial(GLvoid); //funcao auxiliar para desenhar a UI do menu inicial
-GLvoid desenhaEcraInicial(GLvoid); //funcao para desenhar o ecra inicial do jogo. Por que ter uma funcao para desenhar a UI e uma para desenhar o ecra inicial?
-GLvoid idleEcraInicial(GLvoid); //funcao auxiliar para o idle do ecra inicial
+GLvoid desenhaUIEcraInicial(GLvoid); 
+GLvoid desenhaEcraInicial(GLvoid); 
+GLvoid idleEcraInicial(GLvoid); 
 GLvoid tecladoEcraInicial (unsigned char tecla, int x, int y); 
 
+/*----funcoes para o estado de ajuda-----*/
 GLvoid desenhaUIEcraSuporte(GLvoid);
 GLvoid desenhaEcraSuporte(GLvoid);
 GLvoid idleEcraSuporte(GLvoid);
@@ -60,9 +59,7 @@ GLvoid desenhaEcraGameWIn(GLvoid);
 GLvoid idleEcraGameWIn(GLvoid);
 GLvoid tecladoGameWIn(unsigned char tecla, int x, int y);
 
-/*----temporizador----*/
 
-/*----fim temporizador----*/
 
 /*----variaveis globais externas----*/
 
@@ -120,19 +117,19 @@ GLint pontuacaoTotal = 0;
 // Variáveis para controle de tiro dos inimigos
 vector<Projetil*> projeteisInimigos;
 GLfloat ultimoTiroInimigo = 0.0f;
-GLfloat intervaloDisparoInimigo = 2.0f; // Intervalo base entre tiros dos inimigos
+GLfloat intervaloDisparoInimigo = 2.0f; 
 
 // Variáveis para controle do movimento das naves inimigas
 GLfloat velocidadeHorizontalInimigos = 0.5f*escala;
+
+GLfloat distanciaHorizontalInimigos = naveInimigaTamanho[0]*escala*3.5f; 
 GLfloat distanciaVerticalInimigos = naveInimigaTamanho[1]*escala*3;
+
 GLboolean movendoDireita = true;
 GLint ciclosMovimento = 0;
 GLint ciclosParaDescer = 4; 
 
 GLboolean jogadorAtrasLinhaInimiga = false;
-
-// Variável global para o gerenciador de áudio
-AudioManager* audioManager = nullptr;
 
 /*----Funcoes do ecra inicial----*/
 GLvoid desenhaUIEcraInicial(){
@@ -191,10 +188,10 @@ GLvoid desenhaEcraInicial(GLvoid){
      
     gluOrtho2D(coordenadasMundo[0], coordenadasMundo[1], coordenadasMundo[2], coordenadasMundo[3]);
 
-    glMatrixMode(GL_MODELVIEW); // Definir o modo da matriz como modelview
+    glMatrixMode(GL_MODELVIEW); 
     glLoadIdentity();
 
-    desenhaUIEcraInicial(); // Desenha a UI do ecra inicial
+    desenhaUIEcraInicial(); 
 
     glutSwapBuffers();
 }
@@ -222,7 +219,7 @@ GLvoid tecladoEcraInicial(unsigned char tecla, int x,int y){
         glutIdleFunc(idleEcraSuporte);
         glutKeyboardFunc(tecladoSuporte);
         glutPostRedisplay(); // Redesenha a cena
-        estadoAtual = AJUDAINICIAL; // Muda o estado atual para AJUDA
+        estadoAtual = AJUDAINICIAL; 
         std::cout << "Indo para a tela de ajuda..." << std::endl;
         std::cout << estadoAtual << std::endl;
 
@@ -234,11 +231,12 @@ GLvoid tecladoEcraInicial(unsigned char tecla, int x,int y){
     break;
     }
 }
+
 GLvoid desenhaUISelecaoDificuldade(GLvoid) {
     stringstream buffer;
     char caracter;
 
-    // Desenha o título "SELECT DIFFICULTY"
+    // Desenha o título
     glColor3f(0.0f, 1.0f, 0.0f); // Verde
     buffer.str("");
     buffer.clear();
@@ -279,7 +277,7 @@ GLvoid desenhaUISelecaoDificuldade(GLvoid) {
     }
 
     // Instruções para voltar
-    glColor3f(0.0f, 1.0f, 0.0f); // Verde
+    glColor3f(0.0f, 1.0f, 0.0f);
     buffer.str("");
     buffer.clear();
     buffer << "Press ESC to go back";
@@ -308,7 +306,7 @@ GLvoid desenhaEcraSelecaoDificuldade(GLvoid) {
 }
 
 GLvoid idleEcraSelecaoDificuldade(GLvoid) {
-    // Não faz nada, apenas mantém a tela de seleção de dificuldade estática
+
     glutPostRedisplay();
 }
 
@@ -336,9 +334,9 @@ GLvoid tecladoSelecaoDificuldade(unsigned char tecla, int x, int y) {
 GLvoid iniciarJogoComDificuldade(GLint dificuldade) {
     // Limpa o estado anterior
     for (int i = 0; i < navesInimigas.size(); i++) {
-        delete navesInimigas[i]; 
+        delete navesInimigas[i]; // Libera a memoria alocada 
     }
-    navesInimigas.clear(); 
+    navesInimigas.clear(); // Limpa o vetor de naves inimigas
     for (int i = 0; i < projeteisJogador.size(); i++) {
         delete projeteisJogador[i]; 
     }
@@ -353,18 +351,20 @@ GLvoid iniciarJogoComDificuldade(GLint dificuldade) {
         case 1:
             dificuldadeSelecionada = 1;
             vidasJogador = 5;
-            intervaloDisparo = 0.25f; // Tiro mais rápido
-            intervaloDisparoInimigo = 3.0f; // Inimigos atiram mais devagar
+            intervaloDisparo = 0.15f; // Tiro mais rápido
+            intervaloDisparoInimigo = 3.0f; // Inimigos demoram mais para atirar
             razaoInimigoVertical = 0.2f;
             razaoInimigosHorizontal = 0.8f;
+            velocidadeNaveAmiga = 2.0f;
             break;
         case 2:
             dificuldadeSelecionada = 2;
             vidasJogador = 3;
-            intervaloDisparo = 1.5f;
+            intervaloDisparo = 0.5f;
             intervaloDisparoInimigo = 2.0f;
             razaoInimigoVertical = 0.2f;
             razaoInimigosHorizontal = 0.8f;
+            velocidadeNaveAmiga = 1.0f;
             break;
         case 3:
             dificuldadeSelecionada = 3;
@@ -372,7 +372,8 @@ GLvoid iniciarJogoComDificuldade(GLint dificuldade) {
             intervaloDisparo = 1.5f;
             intervaloDisparoInimigo = 1.0f; // Inimigos atiram mais rápido
             razaoInimigoVertical = 0.3f; // Mais inimigos
-            razaoInimigosHorizontal = 0.8f;
+            razaoInimigosHorizontal = 0.4f;
+            velocidadeNaveAmiga = 1.0f;
             break;
     }
 
@@ -382,7 +383,7 @@ GLvoid iniciarJogoComDificuldade(GLint dificuldade) {
     pontuacaoTotal = 0;
     ultimoTiroInimigo = 0.0f;
 
-    // Inicia o jogo
+
     criarNaveJogador();
     criarNavesInimigo();
 
@@ -471,7 +472,7 @@ GLvoid desenhaEcraSuporte(GLvoid){
 
 }
 GLvoid idleEcraSuporte(GLvoid){
-    //TODO
+
 }
 GLvoid tecladoSuporte(unsigned char tecla, int x, int y){
     switch (tecla)
@@ -479,7 +480,7 @@ GLvoid tecladoSuporte(unsigned char tecla, int x, int y){
     
     case 13:
         //depende qual era o ultimo estado. Se era o pausa, volta ao estado de pausa, se era o ecra inicial, volta ao ecra inicial
-        std::cout << "Estado atual: " << (estadoAtual == AJUDAPAUSA ? "AJUDAPAUSA" : "AJUDAINICIAL") << std::endl;
+        
         
         if (estadoAtual == AJUDAPAUSA) 
         {
@@ -570,7 +571,7 @@ GLvoid desenhaEcraPausa(GLvoid){
 }
 
 GLvoid idleEcraPausa(GLvoid){
-    // Não é necessário fazer nada no idle da pausa
+    
 }
 
 GLvoid tecladoPausa(unsigned char tecla, int x, int y){
@@ -609,7 +610,6 @@ GLvoid tecladoPausa(unsigned char tecla, int x, int y){
 
 /*----Funcoes GameOver----*/
 GLvoid desenhaUIGameOver(GLvoid) {
-    audioManager->tocarGameOver();
     stringstream buffer;
     char caracter;
 
@@ -676,37 +676,24 @@ GLvoid desenhaEcraGameOver(GLvoid) {
 GLvoid tecladoGameOver(unsigned char tecla, int x, int y) {
     switch(tecla) {
         case 13: //ENTER para voltar ao menu de início de jogo 
-            // Limpa as naves inimigas e projéteis
-            for (NaveInimiga* nave : navesInimigas) {
-                delete nave; 
-            }
-            navesInimigas.clear(); 
-            for (Projetil* proj : projeteisJogador) {
-                delete proj; 
-            }
-            projeteisJogador.clear(); 
-            for (Projetil* proj : projeteisInimigos) {
-                delete proj;
-            }
-            projeteisInimigos.clear();
 
             glutDisplayFunc(desenhaEcraInicial);
             glutKeyboardFunc(tecladoEcraInicial);
             glutIdleFunc(idleEcraInicial);
-            estadoAtual = INICIAL;
             glutPostRedisplay();
+
+            estadoAtual = INICIAL;
             break;
     }
 }
 
 GLvoid idleEcraGameOver(GLvoid) {
-    // Não faz nada, apenas mantém a tela de game over estática
-    glutPostRedisplay();
+    
+    //glutPostRedisplay();
 }
 
 /*----Funcoes GameWIn----*/
 GLvoid desenhaUIGameWIn(GLvoid) {
-    audioManager->tocarVitoria();
     stringstream buffer;
     char caracter;
 
@@ -781,38 +768,26 @@ GLvoid desenhaEcraGameWIn(GLvoid) {
 
 GLvoid idleEcraGameWIn(GLvoid) {
     // Não faz nada, apenas mantém a tela de vitória estática
-    glutPostRedisplay();
+    //glutPostRedisplay();
 }
 
 GLvoid tecladoGameWIn(unsigned char tecla, int x, int y) {
     switch(tecla) {
         case 13: //ENTER para voltar ao menu de início de jogo
-            // Limpa as naves inimigas e projéteis
-            for (NaveInimiga* nave : navesInimigas) {
-                delete nave; 
-            }
-            navesInimigas.clear(); 
-            for (Projetil* proj : projeteisJogador) {
-                delete proj; 
-            }
-            projeteisJogador.clear(); 
-            for (Projetil* proj : projeteisInimigos) {
-                delete proj;
-            }
-            projeteisInimigos.clear();
 
             glutDisplayFunc(desenhaEcraInicial);
             glutKeyboardFunc(tecladoEcraInicial);
             glutIdleFunc(idleEcraInicial);
-            estadoAtual = INICIAL;
             glutPostRedisplay();
+
+            estadoAtual = INICIAL;
             break;
     }
 }
 
 /*----funcao cria nave jogador----*/
 GLvoid criarNaveJogador(){
-    naveJogador = new NaveJogador(); // Cria a nave do jogador usando seu costrutor default
+    naveJogador = new NaveJogador(velocidadeNaveAmiga); 
 
 }
 
@@ -832,19 +807,13 @@ GLvoid criarNavesInimigo(){
     linhas = (GLint)(linhas * razaoInimigoVertical); //20% por defeito
     colunas = (GLint)(colunas * razaoInimigosHorizontal); //80% por defeito
 
-    std::cout << "Linhas: " << linhas << ", Colunas: " << colunas << std::endl;
-
-       
-    // Calcula o espaço entre as naves inimigas
-    GLfloat espacoHorizontal = naveInimigaTamanho[0];
-    GLfloat espacoVertical = naveInimigaTamanho[1];
 
     // Cria as naves inimigas em uma grade
     for (int i = 0; i < linhas; i++) {
         for (int j = 0; j < colunas; j++) {
             // Calcula a posição inicial de cada nave inimiga
-            GLfloat posX = coordenadasMundo[0] + espacoHorizontal * (j + 1);
-            GLfloat posY = coordenadasMundo[3] - espacoVertical * (i + 1);
+            GLfloat posX = coordenadasMundo[0] + distanciaHorizontalInimigos * (j + 1);
+            GLfloat posY = coordenadasMundo[3] - distanciaVerticalInimigos * (i + 1);
 
             // Cria uma nova nave inimiga e define sua posição inicial
             NaveInimiga* novaNave = new NaveInimiga(velocidadeNaveInimiga);
@@ -953,8 +922,6 @@ GLvoid verificaColisaoJogadorInimigo() {
                     return;
                 }
                 
-                std::cout << "Colisão com nave inimiga! Vidas restantes: " << vidasJogador << std::endl;
-                audioManager->tocarColisao();
                 break;
             }
         }
@@ -962,10 +929,6 @@ GLvoid verificaColisaoJogadorInimigo() {
 }
 
 GLvoid verificaPosicaoJogador() {
-    if (!naveJogador || navesInimigas.empty()) {
-        jogadorAtrasLinhaInimiga = false;
-        return;
-    }
 
     GLfloat* posicaoJogador = naveJogador->getPosicao();
     GLfloat posicaoYInimigoMaisBaixo = coordenadasMundo[3];
@@ -984,7 +947,6 @@ GLvoid verificaPosicaoJogador() {
     if (jogadorAtrasLinhaInimiga) {
         pontuacaoTotal = pontuacaoTotal -5;
         vidasJogador = vidasJogador <= 1 ? 1: vidasJogador -1 ; 
-        audioManager->tocarAviso();
     }
 }
 
@@ -997,7 +959,7 @@ GLvoid idleJogo(GLvoid) {
         ultimoTempoAtualizacao = tempoAtual;
     }
 
-    // Verifica a posição do jogador
+    // Verifica se a nave do jogador esta atrás das linhas inimigas
     verificaPosicaoJogador();
 
     // Verifica colisão entre jogador e inimigos
@@ -1037,7 +999,6 @@ GLvoid idleJogo(GLvoid) {
                         // Atualiza pontuação
                         inimigosEliminados++;
                         pontuacaoTotal += 10; // 10 pontos por inimigo eliminado
-                        audioManager->tocarExplosao();
                         break;
                     }
                 }
@@ -1122,11 +1083,6 @@ GLvoid idleJogo(GLvoid) {
         return;
     }
 
-    // Atualiza o sistema de áudio
-    if (audioManager) {
-        audioManager->atualizar();
-    }
-
     glutPostRedisplay();
 }
 
@@ -1156,20 +1112,14 @@ GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
                 // Cria um novo projétil na posição do bico da nave
                 Projetil* novoProjetil = new Projetil(posicaoNave[0], posicaoNave[1], (int)(angulo/90.0f), true);
                 projeteisJogador.push_back(novoProjetil);
-
-                std::cout << "Projétil criado na posição: X=" << posicaoNave[0] << ", Y=" << posicaoNave[1] << " com ângulo: " << angulo << std::endl;
                 projeteisAtivos = true;
                 
                 // Atualiza o tempo do último disparo
                 ultimoDisparo = tempoAtual;
                 
-                audioManager->tocarTiro();
-                
                 glutPostRedisplay();
             }
-        } else {
-            std::cout << "Aguarde " << (intervaloDisparo - (tempoAtual - ultimoDisparo)) << " segundos para disparar novamente." << std::endl;
-        }
+        } 
         break;
     
     case 8: // "BACKSPACE"
@@ -1217,37 +1167,9 @@ GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
     if (move || rotaciona || projeteisAtivos) {
         glutPostRedisplay();
     }
-    
-    else {
-        std::cout << "Ação inválida!" << std::endl;
-    }
 }
 
-GLvoid desenhaStatusDisparo(GLvoid) {
-    stringstream buffer;
-    char caracter;
-    GLfloat tempoAtual = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-    GLfloat tempoRestante = intervaloDisparo - (tempoAtual - ultimoDisparo);
 
-    if (tempoRestante <= 0) {
-        // Pode atirar
-        glColor3f(0.0f, 1.0f, 0.0f); // Verde
-        buffer.str("");
-        buffer.clear();
-        buffer << "FIRE!";
-    } else {
-        // Carregando
-        glColor3f(1.0f, 0.0f, 0.0f); // Vermelho
-        buffer.str("");
-        buffer.clear();
-        buffer << "LOADING...";
-    }
-
-    glRasterPos3f(coordenadasMundo[0] + 1.0f, coordenadasMundo[2] + 1.0f, 0.0f);
-    while (buffer.get(caracter)) {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
-    }
-}
 
 GLvoid desenhaUIJogo(GLvoid) {
     stringstream buffer;
@@ -1289,14 +1211,35 @@ GLvoid desenhaUIJogo(GLvoid) {
         buffer.str("");
         buffer.clear();
         buffer << "BEHIND ENEMY LINES!";
-        glRasterPos3f(coordenadasMundo[1] - 10.0f, coordenadasMundo[2] + 1.0f, 0.0f);
+        glRasterPos3f(coordenadasMundo[1] - 9.0f, coordenadasMundo[2] + 1.0f, 0.0f);
         while (buffer.get(caracter)) {
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
         }
     }
 
     // Desenha o status do disparo
-    desenhaStatusDisparo();
+
+    GLfloat tempoAtual = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    GLfloat tempoRestante = intervaloDisparo - (tempoAtual - ultimoDisparo);
+
+    if (tempoRestante <= 0) {
+        // Pode atirar
+        glColor3f(0.0f, 1.0f, 0.0f); // Verde
+        buffer.str("");
+        buffer.clear();
+        buffer << "FIRE!";
+    } else {
+        // Carregando
+        glColor3f(1.0f, 0.0f, 0.0f); // Vermelho
+        buffer.str("");
+        buffer.clear();
+        buffer << "LOADING...";
+    }
+
+    glRasterPos3f(coordenadasMundo[0] + 1.0f, coordenadasMundo[2] + 1.0f, 0.0f);
+    while (buffer.get(caracter)) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, caracter);
+    }
 }
 
 GLvoid desenhaEcraJogo(GLvoid) {
@@ -1314,8 +1257,6 @@ GLvoid desenhaEcraJogo(GLvoid) {
     // Desenha a nave do jogador
     if (naveJogador) {
         naveJogador->desenha();
-    } else {
-        std::cerr << "Erro: Nave do jogador não foi criada!" << std::endl;
     }
 
     // Desenha todas as naves inimigas
@@ -1362,14 +1303,6 @@ int main (int argc, char*argv[]){
     glutDisplayFunc(desenhaEcraInicial);
     glutIdleFunc(idleEcraInicial);
     glutKeyboardFunc(tecladoEcraInicial); 
-
-    // Inicializa o gerenciador de áudio
-    audioManager = new AudioManager();
-    if (!audioManager->inicializar()) {
-        std::cerr << "Erro ao inicializar o sistema de áudio" << std::endl;
-        delete audioManager;
-        return 1;
-    }
 
     glutMainLoop();//Inicia o ciclo de eventos que permite detetar eventos
 

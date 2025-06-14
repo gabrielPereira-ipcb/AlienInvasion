@@ -20,7 +20,7 @@ class NaveJogador{
     //variaveis publicas
     public:
         //construtor default
-        NaveJogador();
+        NaveJogador(GLfloat v);
 
         
         GLvoid desenha(GLvoid); //metodo publico para desenhar a nave do jogador

@@ -5,11 +5,11 @@
 /*----Nave padrao do jogador----*/
 
 /*----construtor default----*/
-NaveJogador::NaveJogador(){
+NaveJogador::NaveJogador(GLfloat v){
     posicao[0] = 0.0f;
     posicao[1] = coordenadasMundo[2]+2.0f;//defina a posicao y inicial um pouco acima do limite inferior do mundo
     anguloRotacao = 0.0f; //90 é orientado para cima. Segue a convecao trigonometrica Leste=0, Norte =90, Oeste = 180 e Sul =270. Entretanto, como a nave já é criado com a ponta para o norte, o seu angulo inicial é 0.
-    velocidade = 1.0f;
+    velocidade = v;
 }
 
 
