@@ -200,6 +200,5 @@ GLfloat NaveJogador::getAnguloRotacao(){
 }
 
 NaveJogador::~NaveJogador() { //destrutor da nave do Jogador
-    // Destroi a nave do jogador
-    std::cout << "Destruindo a nave do jogador!" << std::endl;
+    
 }

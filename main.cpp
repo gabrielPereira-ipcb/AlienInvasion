@@ -371,8 +371,8 @@ GLvoid iniciarJogoComDificuldade(GLint dificuldade) {
             vidasJogador = 2;
             intervaloDisparo = 1.5f;
             intervaloDisparoInimigo = 1.0f; // Inimigos atiram mais rápido
-            razaoInimigoVertical = 0.3f; // Mais inimigos
-            razaoInimigosHorizontal = 0.4f;
+            razaoInimigoVertical = 0.3f; 
+            razaoInimigosHorizontal = 0.6f;
             velocidadeNaveAmiga = 1.0f;
             break;
     }
@@ -1123,7 +1123,7 @@ GLvoid tecladoJogo(unsigned char tecla, int x, int y) {
         break;
     
     case 8: // "BACKSPACE"
-        exit(0); // Sair do jogo
+        exit(0); // Sair do jogo Apenas em modo de teste
         break;
 
     case 'w':
